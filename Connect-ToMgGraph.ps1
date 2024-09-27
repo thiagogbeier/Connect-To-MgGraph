@@ -1,23 +1,39 @@
+
 <#PSScriptInfo
-.VERSION 1.0.3
-.GUID
-.AUTHOR Thiago Beier forked authentication method from Andrew S Taylor Microsoft MVP
+
+.VERSION 1.0
+
+.GUID 19bc8c60-9ffa-4da0-b63d-b417b8db70b7
+
+.AUTHOR Thiago Beier
+
 .COMPANYNAME
-.COPYRIGHT GPL
-.TAGS intune endpoint MEM autopilot
+
+.COPYRIGHT
+
+.TAGS
+
 .LICENSEURI
+
 .PROJECTURI
+
 .ICONURI
-.EXTERNALMODULEDEPENDENCIES
+
+.EXTERNALMODULEDEPENDENCIES 
+
 .REQUIREDSCRIPTS
+
 .EXTERNALSCRIPTDEPENDENCIES
+
 .RELEASENOTES
-v1.0.1 - Added prerequisites check, added devicecode and interactive logon parameters
-v1.0.2 - commented out lines 148, 149 to avoid calling Install-GraphModules function twice under entraapp
-v1.0.3 - commented out other lines under usessl and avoid calling Install-GraphModules function twice, addeed -NoWelcome to Connect-MgGraph commands		
+
+
+.PRIVATEDATA
+
 #>
 
-<#
+<# 
+
 .SYNOPSIS
     This script connects to Microsoft Graph using different authentication methods, including Interactive, Device Code, App Secret, Certificate Thumbprint, and specific scopes.
 
@@ -84,7 +100,9 @@ v1.0.3 - commented out other lines under usessl and avoid calling Install-GraphM
     Author: Thiago Beier (thiago.beier@gmail.com)
 	Social: https://x.com/thiagobeier https://thebeier.com/ https://www.linkedin.com/in/tbeier/
     Date: September 11, 2024
-#>
+
+#> 
+
 
 param (
     [string]$AppId,
@@ -322,3 +340,5 @@ if ($devicecode) {
         return
     }
 }
+
+
