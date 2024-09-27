@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0
+.VERSION 1.1
 
 .GUID 19bc8c60-9ffa-4da0-b63d-b417b8db70b7
 
@@ -30,7 +30,11 @@
 
 .PRIVATEDATA
 
-#>
+#> 
+
+
+
+
 
 <# 
 
@@ -38,19 +42,18 @@
     This script connects to Microsoft Graph using different authentication methods, including Interactive, Device Code, App Secret, Certificate Thumbprint, and specific scopes.
 
 .DESCRIPTION
-    This PowerShell script provides three modes of authentication with Microsoft Graph:
+    This PowerShell script provides different methods of authentication to Microsoft Graph:
     - Scopes only: Connect using a specific set of read-only scopes.
     - App Secret: Authenticate using client credentials (AppId, AppSecret, and Tenant).
     - SSL Certificate: Authenticate using an SSL certificate.
+	- Interactive: User authentication is required on a browser.
+	- Devicelogin: Device code for authentication is required on a browser.
 
 .PARAMETER devicecode
     Executes the script using device code to authenticate. Opens Browser (Default) asks user to authenticate.
 
 .PARAMETER interactive
     Executes the script using interactive only to authenticate. Opens Browser (Default) asks user to authenticate.
-
-.PARAMETER scopesonly
-    Executes the script using scopes only to authenticate.
 
 .PARAMETER scopesonly
     Executes the script using scopes only to authenticate.
