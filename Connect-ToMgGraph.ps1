@@ -48,6 +48,9 @@
     - SSL Certificate: Authenticate using an SSL certificate.
 	- Interactive: User authentication is required on a browser.
 	- Devicelogin: Device code for authentication is required on a browser.
+    - Status: Displays Current's Session Status (connected or disconnected).
+    - Disconnects: Disconnects Current's Session Status (whether connected or disconnected) and asks for confirmation.
+    - Skipconfirmation: Disconnects Current's Session Status (whether connected or disconnected) do not ask for confirmation.
 
 .PARAMETER devicecode
     Executes the script using device code to authenticate. Opens Browser (Default) asks user to authenticate.
@@ -79,6 +82,15 @@
 .PARAMETER CertificateThumbprint
     The SSL certificate thumbprint (required for -usessl).
 
+.PARAMETER disconnects 
+    Disconnects from existing session. Asks for confirmation.
+
+.PARAMETER skipconfirmation 
+    Skips confirmation when disonnecting from current active session.
+
+.PARAMETER status
+    Displays current status for existing session. 
+
 .EXAMPLE
     .\script.ps1 -devicecode
     Connects using authenticated user consented scopes/permissions.
@@ -102,6 +114,10 @@
 .EXAMPLE
     .\script.ps1 -disconnects
     Disconnects from existing session. Asks for confirmation.
+
+.EXAMPLE
+    .\script.ps1 -disconnects -SkipConfirmation
+    Disconnects from existing session skips confirmation - automation.
 
 .EXAMPLE
     .\script.ps1 -status
