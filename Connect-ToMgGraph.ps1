@@ -127,7 +127,8 @@ param (
     [switch]$interactive, # If true, execute the interactive block
     [switch]$devicecode,    # If true, execute the device code block
     [switch]$disconnects,    # If true, execute the disconnects code block
-    [switch]$status    # If true, execute the status code block
+    [switch]$status,    # If true, execute the status code block
+    [switch]$SkipConfirmation  # New parameter to skip confirmation when disconnecting
 )
 
 #region PowerShell modules and NuGet
@@ -173,66 +174,6 @@ function Install-GraphModules {
     }
 }     
 #endregion
-
-#Check for existing connection status parameter
-if ($status) {
-	try {
-        Write-Host "This session current permissions `n" -ForegroundColor cyan
-        #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
-		$isconnected = (Get-MgContext -ErrorAction Stop)
-		$isconnected
-        if (-not $isconnected.authtype ) {write-host "Not connected`n" -ForegroundColor yellow} 
-		else {
-		write-host "Connected`n" -ForegroundColor cyan
-		}
-
-    }
-    catch {
-        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting...`n"
-        return
-    }
-}
-
-# Check for disconnects parameter
-if ($disconnects) {
-    try {
-        Write-Host "This session's current permissions`n" -ForegroundColor cyan
-
-        # Attempt to get the current Microsoft Graph context
-        $isconnected = Get-MgContext -ErrorAction Stop
-
-        # Display connection status
-        if (-not $isconnected.AuthType) {
-            Write-Host -ForegroundColor yellow "Not connected"
-        } else {
-            Write-Host "Connected`n" -ForegroundColor cyan
-
-            # Prompt the user with colored text for confirmation
-            Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No/Y/N)" -ForegroundColor red
-            $confirmation = Read-Host
-
-            # Check user's input
-            if ($confirmation -match '^(yes|y)$') {
-                Write-Host "Disconnecting`n" -ForegroundColor cyan
-
-                # Disconnect from Microsoft Graph
-                Disconnect-MgGraph -ErrorAction SilentlyContinue
-                
-                Write-Host "Disconnected`n" -ForegroundColor cyan
-            } else {
-                Write-Host "Disconnect aborted by the user`n" -ForegroundColor yellow
-                return
-            }
-        }
-        Write-Host "`n"
-    }
-    catch {
-        # Catch any errors and display a warning
-        Write-Warning "Error disconnecting from Microsoft Graph or user aborted, exiting..."
-        return
-    }
-}
-
 
 #If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
 if ($entraapp) {
@@ -414,4 +355,63 @@ if ($devicecode) {
     }
 }
 
+#Check for existing connection status parameter
+if ($status) {
+	try {
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
+		$isconnected = (Get-MgContext -ErrorAction Stop)
+		$isconnected
+        if (-not $isconnected.authtype ) {write-host "Not connected`n" -ForegroundColor yellow} 
+		else {
+		write-host "Connected`n" -ForegroundColor cyan
+		}
 
+    }
+    catch {
+        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting...`n"
+        return
+    }
+}
+
+# Check for disconnects parameter
+if ($disconnects) {
+    try {
+        Write-Host "This session's current permissions`n" -ForegroundColor cyan
+
+        # Attempt to get the current Microsoft Graph context
+        $isconnected = Get-MgContext -ErrorAction Stop
+
+        # Display connection status
+        if (-not $isconnected.AuthType) {
+            Write-Host -ForegroundColor yellow "Not connected"
+        } else {
+            Write-Host "Connected`n" -ForegroundColor cyan
+
+            # Check if SkipConfirmation is passed, otherwise prompt the user
+            if (-not $SkipConfirmation) {
+                # Prompt the user with colored text for confirmation
+                Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)" -ForegroundColor Yellow
+                $confirmation = Read-Host
+
+                # Only proceed if user confirms
+                if (-not ($confirmation -match '^(yes|y)$')) {
+                    Write-Host "Disconnect aborted by the user`n" -ForegroundColor yellow
+                    return
+                }
+            }
+
+            # Disconnect from Microsoft Graph
+            Write-Host "Disconnecting`n" -ForegroundColor cyan
+            Disconnect-MgGraph -ErrorAction SilentlyContinue
+            
+            Write-Host "Disconnected`n" -ForegroundColor cyan
+        }
+        Write-Host "`n"
+    }
+    catch {
+        # Catch any errors and display a warning
+        Write-Warning "Error disconnecting from Microsoft Graph or user aborted, exiting..."
+        return
+    }
+}
