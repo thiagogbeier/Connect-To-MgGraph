@@ -101,7 +101,7 @@
 
 .EXAMPLE
     .\script.ps1 -disconnects
-    Disconnects from existing session.
+    Disconnects from existing session. Asks for confirmation.
 
 .EXAMPLE
     .\script.ps1 -status
