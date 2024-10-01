@@ -92,35 +92,35 @@
     Displays current status for existing session. 
 
 .EXAMPLE
-    .\script.ps1 -devicecode
+    .\Connect-ToMgGraph.ps1 -devicecode
     Connects using authenticated user consented scopes/permissions.
 
 .EXAMPLE
-    .\script.ps1 -interactive
+    .\Connect-ToMgGraph.ps1 -interactive
     Connects using authenticated user consented scopes/permissions.
         
 .EXAMPLE
-    .\script.ps1 -scopesonly
+    .\Connect-ToMgGraph.ps1 -scopesonly
     Connects using read-only scopes.
 
 .EXAMPLE
-    .\script.ps1 -entraapp -AppId "client-id-or-entra-app-id-here" -AppSecret "password-here" -Tenant "your-tenant-domain-here"
+    .\Connect-ToMgGraph.ps1 -entraapp -AppId "client-id-or-entra-app-id-here" -AppSecret "password-here" -Tenant "your-tenant-domain-here"
     Connects using App-based authentication with client credentials.
 
 .EXAMPLE
-    .\script.ps1 -usessl -AppId "client-id-or-entra-app-id-here" -TenantId "your-tenant-id-here" -CertificateThumbprint "your-ssl-certificate-thumbprint-here"
+    .\Connect-ToMgGraph.ps1 -usessl -AppId "client-id-or-entra-app-id-here" -TenantId "your-tenant-id-here" -CertificateThumbprint "your-ssl-certificate-thumbprint-here"
     Connects using certificate-based authentication.
 
 .EXAMPLE
-    .\script.ps1 -disconnects
+    .\Connect-ToMgGraph.ps1 -disconnects
     Disconnects from existing session. Asks for confirmation.
 
 .EXAMPLE
-    .\script.ps1 -disconnects -SkipConfirmation
+    .\Connect-ToMgGraph.ps1 -disconnects -SkipConfirmation
     Disconnects from existing session skips confirmation - automation.
 
 .EXAMPLE
-    .\script.ps1 -status
+    .\Connect-ToMgGraph.ps1 -status
     Displays current status for existing session. 
 
 .NOTES
