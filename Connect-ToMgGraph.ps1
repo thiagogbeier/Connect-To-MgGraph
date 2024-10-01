@@ -207,8 +207,11 @@ if ($disconnects) {
         } else {
             Write-Host "Connected`n" -ForegroundColor cyan
 
-            # Prompt the user for confirmation to disconnect
-            $confirmation = Read-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)"
+            # Prompt the user with colored text for confirmation
+            Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)" -ForegroundColor red
+            $confirmation = Read-Host
+
+            # Check user's input
             if ($confirmation -match '^(yes|y)$') {
                 Write-Host "Disconnecting`n" -ForegroundColor cyan
 
@@ -229,6 +232,7 @@ if ($disconnects) {
         return
     }
 }
+
 
 #If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
 if ($entraapp) {
