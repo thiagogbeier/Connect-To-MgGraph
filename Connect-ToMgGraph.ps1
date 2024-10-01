@@ -209,6 +209,26 @@ if ($usessl) {
     }
 }
 
+#If -scopesonly is provided, can not process SkipConfirmation, AppId, AppSecret, and Tenant are required
+if ($scopesonly) {
+    #Call the function
+    #Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    #Install-GraphModules
+
+    if ($AppId) {
+        throw "Error: The -AppId parameter is not required when using scopesonly."
+    }
+    if ($AppSecret) {
+        throw "Error: The -AppSecret parameter is not required when using scopesonly."
+    }
+    if ($Tenant) {
+        throw "Error: The -Tenant parameter is not required when using scopesonly."
+    }
+    if ($SkipConfirmation) {
+        throw "Error: The -SkipConfirmation parameter is not required when using scopesonly."
+    }
+}
+
 #Check for -scopesonly parameter
 if ($scopesonly) {
     #Call the function
@@ -362,10 +382,13 @@ if ($status) {
         #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
 		$isconnected = (Get-MgContext -ErrorAction Stop)
 		$isconnected
-        if (-not $isconnected.authtype ) {write-host "Not connected`n" -ForegroundColor yellow} 
-		else {
-		write-host "Connected`n" -ForegroundColor cyan
-		}
+    # Check if the connection's 'AuthType' property is null
+    if ($null -eq $isconnected.authtype) {
+        Write-Host "Not connected`n" -ForegroundColor yellow  # Inform the user they are not connected.
+    }
+    else {
+        Write-Host "Connected`n" -ForegroundColor cyan  # Inform the user they are connected.
+    }
 
     }
     catch {
