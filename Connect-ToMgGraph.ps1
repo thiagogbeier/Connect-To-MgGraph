@@ -181,16 +181,14 @@ if ($status) {
         #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
 		$isconnected = (Get-MgContext -ErrorAction Stop)
 		$isconnected
-        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected"} 
+        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected`n"} 
 		else {
 		write-host -ForegroundColor green "Connected`n"
 		}
-		Write-Host "`n"
-		
-        Write-Host "Please run -disconnects to disconnect `n" -ForegroundColor darkyellow
+
     }
     catch {
-        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting..."
+        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting...`n"
         return
     }
 }
