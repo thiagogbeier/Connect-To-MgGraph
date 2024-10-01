@@ -99,6 +99,14 @@
     .\script.ps1 -usessl -AppId "client-id-or-entra-app-id-here" -TenantId "your-tenant-id-here" -CertificateThumbprint "your-ssl-certificate-thumbprint-here"
     Connects using certificate-based authentication.
 
+.EXAMPLE
+    .\script.ps1 -disconnects
+    Disconnects from existing session.
+
+.EXAMPLE
+    .\script.ps1 -status
+    Displays current status for existing session. 
+
 .NOTES
     Author: Thiago Beier (thiago.beier@gmail.com)
 	Social: https://x.com/thiagobeier https://thebeier.com/ https://www.linkedin.com/in/tbeier/
@@ -117,7 +125,9 @@ param (
     [switch]$entraapp, # If true, execute the entra app block
     [switch]$usessl, # If true, execute the SSL certificate block
     [switch]$interactive, # If true, execute the interactive block
-    [switch]$devicecode    # If true, execute the device code block
+    [switch]$devicecode,    # If true, execute the device code block
+    [switch]$disconnects,    # If true, execute the disconnects code block
+    [switch]$status    # If true, execute the status code block
 )
 
 #region PowerShell modules and NuGet
@@ -163,6 +173,51 @@ function Install-GraphModules {
     }
 }     
 #endregion
+
+#Check for existing connection status parameter
+if ($status) {
+	try {
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
+		$isconnected = (Get-MgContext -ErrorAction Stop)
+		$isconnected
+        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected"} 
+		else {
+		write-host -ForegroundColor green "Connected`n"
+		}
+		Write-Host "`n"
+		
+        Write-Host "Please run -disconnects to disconnect `n" -ForegroundColor darkyellow
+    }
+    catch {
+        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting..."
+        return
+    }
+}
+
+#Check for disconnects parameter
+if ($disconnects) {
+	try {
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
+		$isconnected = (Get-MgContext -ErrorAction Stop)
+		$isconnected
+        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected"} 
+		else {
+		write-host -ForegroundColor green "Connected`n"
+		write-host -ForegroundColor cyan "Disconnecting`n"
+		Disconnect-MgGraph
+        write-host -ForegroundColor cyan "Disconnected`n"
+		}
+		Write-Host "`n"
+		
+        #Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+    }
+    catch {
+        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting..."
+        return
+    }
+}
 
 #If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
 if ($entraapp) {
