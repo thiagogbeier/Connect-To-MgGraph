@@ -208,7 +208,7 @@ if ($disconnects) {
             Write-Host "Connected`n" -ForegroundColor cyan
 
             # Prompt the user with colored text for confirmation
-            Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)" -ForegroundColor red
+            Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No/Y/N)" -ForegroundColor red
             $confirmation = Read-Host
 
             # Check user's input
