@@ -183,7 +183,7 @@ if ($status) {
 		$isconnected
         if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected`n"} 
 		else {
-		write-host -ForegroundColor green "Connected`n"
+		write-host -ForegroundColor cyan "Connected`n"
 		}
 
     }
@@ -209,7 +209,7 @@ if ($disconnects) {
 		}
 		Write-Host "`n"
 		
-        #Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+        #Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting..."
@@ -269,7 +269,7 @@ if ($scopesonly) {
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
-        Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
@@ -322,7 +322,7 @@ if ($entraapp) {
     Write-Host "This session current permissions `n" -ForegroundColor cyan
     Get-MgContext | Select-Object -ExpandProperty Scopes
     Write-Host "`n"
-    Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+    Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
     #Disconnect-MgGraph
     #endregion
 }
@@ -341,7 +341,7 @@ if ($usessl) {
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
         #(Get-MgContext).scopes
-        Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
         #Disconnect-MgGraph
     }
     catch {
@@ -363,7 +363,7 @@ if ($interactive) {
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
         #(Get-MgContext).scopes
-        Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
@@ -389,7 +389,7 @@ if ($devicecode) {
         Write-Host "`n"
 
         #(Get-MgContext).scopes
-        Write-Host "Please run Disconnect-MgGraph to disconnect `n" -ForegroundColor darkyellow
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
     }
     catch {
         Write-Warning "Error connecting to Microsoft Graph or user aborted, exiting..."
