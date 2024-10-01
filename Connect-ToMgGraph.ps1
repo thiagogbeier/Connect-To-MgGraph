@@ -181,9 +181,9 @@ if ($status) {
         #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
 		$isconnected = (Get-MgContext -ErrorAction Stop)
 		$isconnected
-        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected`n"} 
+        if (-not $isconnected.authtype ) {write-host "Not connected`n" -ForegroundColor yellow} 
 		else {
-		write-host -ForegroundColor cyan "Connected`n"
+		write-host "Connected`n" -ForegroundColor cyan
 		}
 
     }
@@ -202,10 +202,10 @@ if ($disconnects) {
 		$isconnected
         if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected"} 
 		else {
-		write-host -ForegroundColor green "Connected`n"
-		write-host -ForegroundColor cyan "Disconnecting`n"
+		write-host "Connected`n" -ForegroundColor cyan
+		write-host "Disconnecting`n" -ForegroundColor cyan
 		Disconnect-MgGraph
-        write-host -ForegroundColor cyan "Disconnected`n"
+        write-host "Disconnected`n" -ForegroundColor cyan
 		}
 		Write-Host "`n"
 		
