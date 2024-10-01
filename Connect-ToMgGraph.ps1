@@ -193,26 +193,39 @@ if ($status) {
     }
 }
 
-#Check for disconnects parameter
+# Check for disconnects parameter
 if ($disconnects) {
-	try {
-        Write-Host "This session current permissions `n" -ForegroundColor cyan
-        #Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
-		$isconnected = (Get-MgContext -ErrorAction Stop)
-		$isconnected
-        if (-not $isconnected.authtype ) {write-host -ForegroundColor yellow "Not connected"} 
-		else {
-		write-host "Connected`n" -ForegroundColor cyan
-		write-host "Disconnecting`n" -ForegroundColor cyan
-		Disconnect-MgGraph
-        write-host "Disconnected`n" -ForegroundColor cyan
-		}
-		Write-Host "`n"
-		
-        #Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
+    try {
+        Write-Host "This session's current permissions`n" -ForegroundColor cyan
+
+        # Attempt to get the current Microsoft Graph context
+        $isconnected = Get-MgContext -ErrorAction Stop
+
+        # Display connection status
+        if (-not $isconnected.AuthType) {
+            Write-Host -ForegroundColor yellow "Not connected"
+        } else {
+            Write-Host "Connected`n" -ForegroundColor cyan
+
+            # Prompt the user for confirmation to disconnect
+            $confirmation = Read-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)"
+            if ($confirmation -match '^(yes|y)$') {
+                Write-Host "Disconnecting`n" -ForegroundColor cyan
+
+                # Disconnect from Microsoft Graph
+                Disconnect-MgGraph -ErrorAction SilentlyContinue
+                
+                Write-Host "Disconnected`n" -ForegroundColor cyan
+            } else {
+                Write-Host "Disconnect aborted by the user`n" -ForegroundColor yellow
+                return
+            }
+        }
+        Write-Host "`n"
     }
     catch {
-        Write-Warning "Error disconnecting to Microsoft Graph or user aborted, exiting..."
+        # Catch any errors and display a warning
+        Write-Warning "Error disconnecting from Microsoft Graph or user aborted, exiting..."
         return
     }
 }
