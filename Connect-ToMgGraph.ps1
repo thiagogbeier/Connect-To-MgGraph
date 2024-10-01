@@ -406,7 +406,7 @@ if ($disconnects) {
         $isconnected = Get-MgContext -ErrorAction Stop
 
         # Display connection status
-        if (-not $isconnected.AuthType) {
+        if ($null -eq $isconnected.authtype) {
             Write-Host -ForegroundColor yellow "Not connected"
         } else {
             Write-Host "Connected`n" -ForegroundColor cyan
@@ -414,7 +414,7 @@ if ($disconnects) {
             # Check if SkipConfirmation is passed, otherwise prompt the user
             if (-not $SkipConfirmation) {
                 # Prompt the user with colored text for confirmation
-                Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No)" -ForegroundColor Yellow
+                Write-Host "Do you want to disconnect from Microsoft Graph? (Yes/No/Y/N)" -ForegroundColor red
                 $confirmation = Read-Host
 
                 # Only proceed if user confirms
