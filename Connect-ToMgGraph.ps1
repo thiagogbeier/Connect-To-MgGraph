@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.2
+.VERSION 1.2.1
 
 .GUID 19bc8c60-9ffa-4da0-b63d-b417b8db70b7
 
@@ -128,7 +128,8 @@
 .NOTES
     Author: Thiago Beier (thiago.beier@gmail.com)
 	Social: https://x.com/thiagobeier https://thebeier.com/ https://www.linkedin.com/in/tbeier/
-    Date: September 11, 2024
+    Date created: September 11, 2024
+    Date updated: October 16, 2024
 
 #> 
 
@@ -149,21 +150,9 @@ param (
     [switch]$SkipConfirmation  # New parameter to skip confirmation when disconnecting
 )
 
-#region PowerShell modules and NuGet
-function Install-GraphModules {
-    #Get NuGet
-    if (-not (Get-PackageProvider NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
-        try {
-            Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force:$true | Out-Null
-            Write-Host "Installed PackageProvider NuGet"
-        }
-        catch {
-            Write-Warning "Error installing provider NuGet, exiting..."
-            return
-        }
-    }
-
-    #Get Graph Authentication modules (and dependencies)
+#region PowerShell modules and NuGet by  Maxime Guillemin updated on 10/16/2024 - Faster modules detection and installation
+function Install-GraphModules {   
+    # Define required modules
     $modules = @{
         'Microsoft Graph Authentication' = 'Microsoft.Graph.Authentication'
         'MS Graph Groups'                = 'Microsoft.Graph.Groups'
@@ -171,26 +160,45 @@ function Install-GraphModules {
         'MS Graph Users'                 = 'Microsoft.Graph.Users'
     }
 
-    #Set PSGallery as Trusted
-    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
+    # Check if modules already exist if not check if NuGet is installed and install modules
     foreach ($module in $modules.GetEnumerator()) {
         if (Get-Module -Name $module.value -ListAvailable -ErrorAction SilentlyContinue) {
-            Import-Module -Name $module.value
+            #Write-IntuneToolkitLog "Module $($module.Value) is already installed." -component "Install-GraphModules" -file "InstallGraphModules.ps1"
         }
         else {
             try {
-                Install-Module $module.Value -ErrorAction Stop
-                Write-Host ("Installing and importing PowerShell module {0}" -f $module.value) -ErrorAction Stop
-                Import-Module -Name $module.value -ErrorAction Stop
+                # Check if NuGet is installed
+                if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue)) {
+                    try {
+                        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop | Out-Null
+                        Write-Host "Installed PackageProvider NuGet"
+                                            }
+                    catch {
+                        Write-Warning "Error installing provider NuGet, exiting..."
+                        
+                        return
+                    }
+                }
+
+                # Set PSGallery as a trusted repository if not already
+                if ((Get-PSRepository -Name PSGallery).InstallationPolicy -ne 'Trusted') {
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+                    
+                }
+
+                Write-Host ("Installing and importing PowerShell module {0}" -f $module.Value)
+                Install-Module -Name $module.Value -Force -ErrorAction Stop
+                Import-Module -Name $module.Value -ErrorAction Stop
+                
             }
             catch {
-                Write-Warning ("Error Installing or importing Powershell module {0}, exiting..." -f $module.value)
+                Write-Warning ("Error installing or importing PowerShell module {0}, exiting..." -f $module.Value)
+                
                 return
             }
         }
     }
-}     
+}  
 #endregion
 
 #If -entraapp is provided, enforce that AppId, AppSecret, and Tenant are required
