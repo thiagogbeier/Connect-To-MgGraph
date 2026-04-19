@@ -69,6 +69,15 @@
 .PARAMETER usessl
     Executes the script using certificate-based authentication with AppId, TenantId, and CertificateThumbprint.
 
+.PARAMETER managedidentity
+    Executes the script using managed identity authentication.
+
+.PARAMETER environmentvariable
+    Executes the script using environment variable-based authentication.
+
+.PARAMETER accesstokenauth
+    Executes the script using a provided access token.
+
 .PARAMETER AppId
     The Azure AD Application (client) ID.
 
@@ -83,6 +92,18 @@
 
 .PARAMETER CertificateThumbprint
     The SSL certificate thumbprint (required for -usessl).
+
+.PARAMETER CertificateName
+    The certificate subject name (optional alternative to -CertificateThumbprint with -usessl).
+
+.PARAMETER ManagedIdentityClientId
+    The user-assigned managed identity client ID (optional with -managedidentity).
+
+.PARAMETER AccessToken
+    The access token used with -accesstokenauth.
+
+.PARAMETER Environment
+    Microsoft Graph cloud environment. Example: Global, USGov, USGovDoD, China.
 
 .PARAMETER disconnects 
     Disconnects from existing session. Asks for confirmation.
@@ -114,6 +135,26 @@
     Connects using certificate-based authentication.
 
 .EXAMPLE
+    .\Connect-ToMgGraph.ps1 -usessl -AppId "client-id-or-entra-app-id-here" -TenantId "your-tenant-id-here" -CertificateName "CN=GraphAutomationCert"
+    Connects using certificate-based authentication with certificate name.
+
+.EXAMPLE
+    .\Connect-ToMgGraph.ps1 -managedidentity
+    Connects using system-assigned managed identity.
+
+.EXAMPLE
+    .\Connect-ToMgGraph.ps1 -managedidentity -ManagedIdentityClientId "user-assigned-managed-identity-client-id"
+    Connects using user-assigned managed identity.
+
+.EXAMPLE
+    .\Connect-ToMgGraph.ps1 -environmentvariable
+    Connects using environment variable-based authentication supported by Microsoft Graph PowerShell.
+
+.EXAMPLE
+    .\Connect-ToMgGraph.ps1 -accesstokenauth -AccessToken "eyJ..."
+    Connects using an existing access token.
+
+.EXAMPLE
     .\Connect-ToMgGraph.ps1 -disconnects
     Disconnects from existing session. Asks for confirmation.
 
@@ -139,16 +180,57 @@ param (
     [string]$TenantId,
     [string]$AppSecret,
     [string]$CertificateThumbprint,
+    [string]$CertificateName,
     [string]$Tenant,
+    [string]$ManagedIdentityClientId,
+    [string]$AccessToken,
+    [ValidateSet("Global", "China", "USGov", "USGovDoD")]
+    [string]$Environment = "Global",
     [switch]$scopesonly, # If true, execute the scopes only block
     [switch]$entraapp, # If true, execute the entra app block
     [switch]$usessl, # If true, execute the SSL certificate block
+    [switch]$managedidentity, # If true, execute the managed identity block
+    [switch]$environmentvariable, # If true, execute environment variable-based auth
+    [switch]$accesstokenauth, # If true, execute access token auth block
     [switch]$interactive, # If true, execute the interactive block
     [switch]$devicecode,    # If true, execute the device code block
     [switch]$disconnects,    # If true, execute the disconnects code block
     [switch]$status,    # If true, execute the status code block
     [switch]$SkipConfirmation  # New parameter to skip confirmation when disconnecting
 )
+
+$authenticationModes = @(
+    $scopesonly,
+    $entraapp,
+    $usessl,
+    $interactive,
+    $devicecode,
+    $managedidentity,
+    $environmentvariable,
+    $accesstokenauth
+)
+
+if (($authenticationModes | Where-Object { $_ }).Count -gt 1) {
+    throw "Error: Use only one authentication mode per execution."
+}
+
+if ($AccessToken -and -not $accesstokenauth) {
+    throw "Error: The -AccessToken parameter requires -accesstokenauth."
+}
+
+function Get-GraphConnectionAccessToken {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Token
+    )
+
+    $version = (Get-Module microsoft.graph.authentication -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1 -ExpandProperty Version).Major
+    if ($version -eq 2) {
+        return (ConvertTo-SecureString -String $Token -AsPlainText -Force)
+    }
+
+    return $Token
+}
 
 #region PowerShell modules and NuGet by  Maxime Guillemin updated on 10/16/2024 - Faster modules detection and installation
 function Install-GraphModules {   
@@ -213,8 +295,8 @@ if ($entraapp) {
     if (-not $AppSecret) {
         throw "Error: The -AppSecret parameter is required when using -entraapp."
     }
-    if (-not $Tenant) {
-        throw "Error: The -Tenant parameter is required when using -entraapp."
+    if (-not ($Tenant -or $TenantId)) {
+        throw "Error: The -Tenant or -TenantId parameter is required when using -entraapp."
     }
 }
 
@@ -230,9 +312,13 @@ if ($usessl) {
     if (-not $TenantId) {
         throw "Error: The -TenantId parameter is required when using -usessl."
     }
-    if (-not $CertificateThumbprint) {
-        throw "Error: The -CertificateThumbprint parameter is required when using -usessl."
+    if (-not ($CertificateThumbprint -or $CertificateName)) {
+        throw "Error: The -CertificateThumbprint or -CertificateName parameter is required when using -usessl."
     }
+}
+
+if ($accesstokenauth -and -not $AccessToken) {
+    throw "Error: The -AccessToken parameter is required when using -accesstokenauth."
 }
 
 #If -scopesonly is provided, can not process SkipConfirmation, AppId, AppSecret, and Tenant are required
@@ -269,7 +355,7 @@ if ($scopesonly) {
     )
     
     try {
-        Connect-MgGraph -Scopes $scopesReadOnly -NoWelcome -ErrorAction Stop
+        Connect-MgGraph -Scopes $scopesReadOnly -Environment $Environment -NoWelcome -ErrorAction Stop
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
@@ -289,36 +375,16 @@ if ($entraapp) {
     Install-GraphModules
 
     #region app secret
-    #Populate with the App Registration details and Tenant ID to validate manually
-    #$appid = ''
-    #$tenantid = ''
-    #$appsecret = ''
-    $version = (Get-Module microsoft.graph.authentication | Select-Object -ExpandProperty Version).Major
-    $body = @{
-        grant_type    = "client_credentials"
-        client_id     = $AppId
-        client_secret = $AppSecret
-        scope         = "https://graph.microsoft.com/.default"
-    }
-
-    $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$Tenant/oauth2/v2.0/token" -Body $body
-    $accessToken = $response.access_token
-    if ($version -eq 2) {
-        Write-Host "Version 2 module detected"
-        $accesstokenfinal = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
-    }
-    else {
-        Write-Host "Version 1 Module Detected"
-        Select-MgProfile -Name Beta
-        $accesstokenfinal = $accessToken
-    }
+    $resolvedTenantId = if ($TenantId) { $TenantId } else { $Tenant }
+    $secureClientSecret = ConvertTo-SecureString -String $AppSecret -AsPlainText -Force
+    $clientSecretCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $AppId, $secureClientSecret
 
     try {
-        Connect-MgGraph -AccessToken $accesstokenfinal -NoWelcome -ErrorAction Stop
-        Write-Host "Connected to tenant $Tenant using app-based authentication"
+        Connect-MgGraph -TenantId $resolvedTenantId -ClientSecretCredential $clientSecretCredential -Environment $Environment -NoWelcome -ErrorAction Stop
+        Write-Host "Connected to tenant $resolvedTenantId using app-based authentication"
     }
     catch {
-        Write-Warning "Error connecting to tenant $Tenant using app-based authentication, exiting..."
+        Write-Warning "Error connecting to tenant $resolvedTenantId using app-based authentication, exiting..."
         return
     }
 
@@ -339,7 +405,12 @@ if ($usessl) {
 
     try {
         #region ssl certificate authentication
-        Connect-MgGraph -ClientId $AppId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint -NoWelcome -ErrorAction Stop
+        if ($CertificateThumbprint) {
+            Connect-MgGraph -ClientId $AppId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint -Environment $Environment -NoWelcome -ErrorAction Stop
+        }
+        else {
+            Connect-MgGraph -ClientId $AppId -TenantId $TenantId -CertificateName $CertificateName -Environment $Environment -NoWelcome -ErrorAction Stop
+        }
         #Get-MgContext
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
@@ -362,7 +433,7 @@ if ($interactive) {
     Install-GraphModules
     
     try {
-        Connect-MgGraph -NoWelcome -ErrorAction Stop
+        Connect-MgGraph -Environment $Environment -NoWelcome -ErrorAction Stop
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
         Write-Host "`n"
@@ -382,11 +453,7 @@ if ($devicecode) {
     Install-GraphModules
 
     try {
-        #Start Browser
-        Start-Process https://microsoft.com/devicelogin -ErrorAction Stop
-
-        #Wait for the user to enter the code provided on Screen to authenticate on opened Browser (Default)
-        Connect-MgGraph -UseDeviceCode -ErrorAction Stop
+        Connect-MgGraph -UseDeviceAuthentication -Environment $Environment -ErrorAction Stop
     
         Write-Host "This session current permissions `n" -ForegroundColor cyan
         Get-MgContext | Select-Object -ExpandProperty Scopes -ErrorAction Stop
@@ -461,6 +528,68 @@ if ($disconnects) {
     catch {
         # Catch any errors and display a warning
         Write-Warning "Error disconnecting from Microsoft Graph or user aborted, exiting..."
+        return
+    }
+}
+
+#Check for -managedidentity parameter
+if ($managedidentity) {
+    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Install-GraphModules
+
+    try {
+        if ($ManagedIdentityClientId) {
+            Connect-MgGraph -Identity -ClientId $ManagedIdentityClientId -Environment $Environment -NoWelcome -ErrorAction Stop
+        }
+        else {
+            Connect-MgGraph -Identity -Environment $Environment -NoWelcome -ErrorAction Stop
+        }
+
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        Get-MgContext -ErrorAction Stop
+        Write-Host "`n"
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
+    }
+    catch {
+        Write-Warning "Error connecting to Microsoft Graph using managed identity, exiting..."
+        return
+    }
+}
+
+#Check for -environmentvariable parameter
+if ($environmentvariable) {
+    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Install-GraphModules
+
+    try {
+        Connect-MgGraph -EnvironmentVariable -Environment $Environment -NoWelcome -ErrorAction Stop
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        Get-MgContext -ErrorAction Stop
+        Write-Host "`n"
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
+    }
+    catch {
+        Write-Warning "Error connecting to Microsoft Graph using environment variable authentication, exiting..."
+        return
+    }
+}
+
+#Check for -accesstokenauth parameter
+if ($accesstokenauth) {
+    Write-Host "Checking NuGet and PowerShell dependencies `n" -ForegroundColor cyan
+    Install-GraphModules
+
+    try {
+        $accessTokenValue = Get-GraphConnectionAccessToken -Token $AccessToken
+        Connect-MgGraph -AccessToken $accessTokenValue -Environment $Environment -NoWelcome -ErrorAction Stop
+        Write-Host "Connected to Microsoft Graph using access token authentication"
+        Write-Host "This session current permissions `n" -ForegroundColor cyan
+        Get-MgContext -ErrorAction Stop
+        Write-Host "`n"
+        Write-Host "Please run Disconnect-MgGraph or -disconnects to disconnect `n" -ForegroundColor darkyellow
+    }
+    catch {
+        Write-Warning "Error connecting to Microsoft Graph using access token authentication, exiting..."
         return
     }
 }

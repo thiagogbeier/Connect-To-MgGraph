@@ -9,10 +9,10 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-RootModule = 'Connect-ToMgGraph'
+RootModule = 'Connect-ToMgGraph.ps1'
 
 # Version number of this module.
-ModuleVersion = '1.2.2'
+ModuleVersion = '1.3.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
