@@ -1,0 +1,142 @@
+name: Publish Connect-ToMgGraph to PSGallery
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate versions and decide publish
+        id: gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $scriptPath = "./Connect-ToMgGraph.ps1"
+          $manifestPath = "./Connect-ToMgGraph.psd1"
+
+          if (-not (Test-Path $scriptPath)) { throw "Missing file: $scriptPath" }
+          if (-not (Test-Path $manifestPath)) { throw "Missing file: $manifestPath" }
+
+          $scriptContent = Get-Content -Path $scriptPath -Raw
+          $scriptVersionRegex = [regex]::Match($scriptContent, "(?m)^\s*\.VERSION\s+([0-9]+\.[0-9]+\.[0-9]+)\s*$")
+          if (-not $scriptVersionRegex.Success) {
+            throw "Unable to find .VERSION in Connect-ToMgGraph.ps1"
+          }
+
+          $ps1VersionText = $scriptVersionRegex.Groups[1].Value
+          $manifestData = Import-PowerShellDataFile -Path $manifestPath
+          $psd1VersionText = [string]$manifestData.ModuleVersion
+
+          if ([string]::IsNullOrWhiteSpace($psd1VersionText)) {
+            throw "ModuleVersion not found in Connect-ToMgGraph.psd1"
+          }
+
+          if ($ps1VersionText -ne $psd1VersionText) {
+            throw "Version mismatch: ps1=$ps1VersionText psd1=$psd1VersionText"
+          }
+
+          $currentVersion = [version]$ps1VersionText
+
+          $publishedVersion = [version]"0.0.0"
+          $publishedMatch = Find-Script -Name "Connect-ToMgGraph" -Repository "PSGallery" -RequiredVersion $ps1VersionText -ErrorAction SilentlyContinue
+          if ($publishedMatch) {
+            Write-Host "Version $ps1VersionText already exists in PSGallery."
+            "should_publish=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "version=$ps1VersionText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+
+          $publishedAny = Find-Script -Name "Connect-ToMgGraph" -Repository "PSGallery" -ErrorAction SilentlyContinue
+          if ($publishedAny) {
+            $latest = $publishedAny | Sort-Object { [version]$_.Version } -Descending | Select-Object -First 1
+            $publishedVersion = [version]$latest.Version
+          }
+
+          if ($currentVersion -le $publishedVersion) {
+            Write-Host "Current version ($ps1VersionText) is not greater than latest published ($publishedVersion)."
+            "should_publish=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "version=$ps1VersionText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $tagVersion = $env:GITHUB_REF_NAME -replace "^v", ""
+            if ($tagVersion -ne $ps1VersionText) {
+              throw "Tag version ($tagVersion) does not match script version ($ps1VersionText)."
+            }
+          }
+
+          "should_publish=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$ps1VersionText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Preflight validation
+        if: steps.gate.outputs.should_publish == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Test-ScriptFileInfo ./Connect-ToMgGraph.ps1 | Out-Null
+          $tokens = $null
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path ./Connect-ToMgGraph.ps1), [ref]$tokens, [ref]$errors)
+          if ($errors -and $errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host "ParseError at line $($_.Extent.StartLineNumber): $($_.Message)" }
+            throw "Script parse validation failed"
+          }
+          Test-ModuleManifest -Path ./Connect-ToMgGraph.psd1 | Out-Null
+
+      - name: Publish to PowerShell Gallery
+        if: steps.gate.outputs.should_publish == 'true'
+        shell: pwsh
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ([string]::IsNullOrWhiteSpace($env:PSGALLERY_API_KEY)) {
+            throw "Missing required secret: PSGALLERY_API_KEY"
+          }
+
+          Publish-Script \
+            -Path ./Connect-ToMgGraph.ps1 \
+            -NuGetApiKey $env:PSGALLERY_API_KEY \
+            -Repository PSGallery \
+            -Verbose
+
+      - name: Create and push release tag
+        if: steps.gate.outputs.should_publish == 'true' && github.ref_type != 'tag'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="v${{ steps.gate.outputs.version }}"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists locally."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Workflow summary
+        shell: bash
+        run: |
+          echo "should_publish=${{ steps.gate.outputs.should_publish }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "version=${{ steps.gate.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"

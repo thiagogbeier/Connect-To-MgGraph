@@ -109,3 +109,30 @@ Example:
 - Prefer `-managedidentity`, `-entraapp`, or `-usessl` for non-interactive automation.
 - Use secret stores (Azure Key Vault, Jenkins credentials, Azure DevOps secret variables, Ansible Vault) and avoid plain text secrets in source control.
 - Use one authentication mode per invocation.
+
+## GitHub Actions publishing
+
+This repository includes a GitHub Actions workflow to publish to PowerShell Gallery when version is bumped after a full update.
+
+Workflow file:
+
+- `.github/workflows/publish-psgallery.yml`
+
+Required repository secret:
+
+- `PSGALLERY_API_KEY` (PowerShell Gallery API key with publish permission)
+
+Release flow:
+
+1. Update code.
+2. Bump version in both places:
+   - `Connect-ToMgGraph.ps1` -> `.VERSION`
+   - `Connect-ToMgGraph.psd1` -> `ModuleVersion`
+3. Merge to `main`.
+4. Workflow validates version consistency, checks duplicate versions in PSGallery, and publishes with `Publish-Script`.
+5. If publish succeeds from a branch push, workflow creates a matching tag like `v1.3.1`.
+
+Optional tag path:
+
+- Pushing a tag that matches `v*.*.*` also triggers the same workflow.
+- Tag version must match script/manifest version.
